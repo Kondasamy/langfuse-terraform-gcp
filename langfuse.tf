@@ -1,6 +1,10 @@
 locals {
   langfuse_values   = <<EOT
 langfuse:
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
   salt:
     secretKeyRef:
       name: ${kubernetes_secret.langfuse.metadata[0].name}
