@@ -69,6 +69,30 @@ variable "langfuse_chart_version" {
   default     = "1.5.14"
 }
 
+variable "zookeeper_memory_request" {
+  description = "Memory request for Zookeeper pods"
+  type        = string
+  default     = "512Mi"
+}
+
+variable "zookeeper_memory_limit" {
+  description = "Memory limit for Zookeeper pods"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "zookeeper_cpu_request" {
+  description = "CPU request for Zookeeper pods"
+  type        = string
+  default     = "250m"
+}
+
+variable "zookeeper_cpu_limit" {
+  description = "CPU limit for Zookeeper pods"
+  type        = string
+  default     = "500m"
+}
+
 variable "additional_env" {
   description = "Additional environment variables to add to the Langfuse container. Supports both direct values and Kubernetes valueFrom references (secrets, configMaps)."
   type = list(object({

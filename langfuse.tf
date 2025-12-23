@@ -60,6 +60,14 @@ clickhouse:
   auth:
     existingSecret: ${kubernetes_secret.langfuse.metadata[0].name}
     existingSecretKey: clickhouse-password
+  zookeeper:
+    resources:
+      requests:
+        memory: ${var.zookeeper_memory_request}
+        cpu: ${var.zookeeper_cpu_request}
+      limits:
+        memory: ${var.zookeeper_memory_limit}
+        cpu: ${var.zookeeper_cpu_limit}
 redis:
   deploy: false
   host: ${google_redis_instance.this.host}
