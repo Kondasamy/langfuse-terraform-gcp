@@ -1,10 +1,7 @@
 locals {
   langfuse_values   = <<EOT
 langfuse:
-  replicaCount: 2
-  podDisruptionBudget:
-    enabled: true
-    minAvailable: 1
+  replicas: 2
   salt:
     secretKeyRef:
       name: ${kubernetes_secret.langfuse.metadata[0].name}
@@ -206,4 +203,24 @@ resource "helm_release" "langfuse" {
   ]
 
   timeout = 1800 # Increase timeout to 15 minutes
+}
+
+resource "kubernetes_pod_disruption_budget_v1" "langfuse_web" {
+  metadata {
+    name      = "langfuse-web"
+    namespace = kubernetes_namespace.langfuse.metadata[0].name
+  }
+
+  spec {
+    min_available = 1
+
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name"      = "langfuse"
+        "app.kubernetes.io/component" = "web"
+      }
+    }
+  }
+
+  depends_on = [helm_release.langfuse]
 }
