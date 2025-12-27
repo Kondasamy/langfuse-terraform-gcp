@@ -48,14 +48,15 @@ langfuse:
         items:
           - key: redis-certificate
             path: redis-ca.crt
-  livenessProbe:
-    initialDelaySeconds: 60
-    timeoutSeconds: 15
-    failureThreshold: 5
-  readinessProbe:
-    initialDelaySeconds: 30
-    timeoutSeconds: 15
-    failureThreshold: 5
+  web:
+    livenessProbe:
+      initialDelaySeconds: 60
+      timeoutSeconds: 15
+      failureThreshold: 5
+    readinessProbe:
+      initialDelaySeconds: 30
+      timeoutSeconds: 15
+      failureThreshold: 5
 postgresql:
   deploy: false
   host: ${google_sql_database_instance.this.private_ip_address}
