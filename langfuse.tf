@@ -18,25 +18,25 @@ langfuse:
   additionalEnv:
     - name: LANGFUSE_USE_GOOGLE_CLOUD_STORAGE
       value: "true"
-%{ for env in var.additional_env ~}
+%{for env in var.additional_env~}
     - name: ${env.name}
-%{ if env.value != null ~}
+%{if env.value != null~}
       value: ${jsonencode(env.value)}
-%{ endif ~}
-%{ if env.valueFrom != null ~}
+%{endif~}
+%{if env.valueFrom != null~}
       valueFrom:
-%{ if env.valueFrom.secretKeyRef != null ~}
+%{if env.valueFrom.secretKeyRef != null~}
         secretKeyRef:
           name: ${env.valueFrom.secretKeyRef.name}
           key: ${env.valueFrom.secretKeyRef.key}
-%{ endif ~}
-%{ if env.valueFrom.configMapKeyRef != null ~}
+%{endif~}
+%{if env.valueFrom.configMapKeyRef != null~}
         configMapKeyRef:
           name: ${env.valueFrom.configMapKeyRef.name}
           key: ${env.valueFrom.configMapKeyRef.key}
-%{ endif ~}
-%{ endif ~}
-%{ endfor ~}
+%{endif~}
+%{endif~}
+%{endfor~}
   extraVolumeMounts:
     - name: redis-certificate
       mountPath: /var/run/secrets/
@@ -50,13 +50,30 @@ langfuse:
             path: redis-ca.crt
   web:
     livenessProbe:
-      initialDelaySeconds: 60
+      initialDelaySeconds: 90
       timeoutSeconds: 15
-      failureThreshold: 5
+      periodSeconds: 15
+      failureThreshold: 6
+    readinessProbe:
+      initialDelaySeconds: 45
+      timeoutSeconds: 15
+      periodSeconds: 10
+      failureThreshold: 6
+    lifecycle:
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "sleep 15"]
+  worker:
+    livenessProbe:
+      initialDelaySeconds: 60
+      timeoutSeconds: 10
+      periodSeconds: 15
+      failureThreshold: 6
     readinessProbe:
       initialDelaySeconds: 30
-      timeoutSeconds: 15
-      failureThreshold: 5
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 6
 postgresql:
   deploy: false
   host: ${google_sql_database_instance.this.private_ip_address}
@@ -113,6 +130,9 @@ langfuse:
       paths:
       - path: /
         pathType: Prefix
+  service:
+    annotations:
+      cloud.google.com/backend-config: '{"default": "langfuse-web"}'
   securityContext:
     allowPrivilegeEscalation: false
 EOT
@@ -185,6 +205,36 @@ resource "kubernetes_secret" "langfuse" {
   }
 }
 
+# BackendConfig for GCP Load Balancer health check settings
+# This aligns GCP health checks with Kubernetes probe settings to prevent
+# premature unhealthy markings during pod startup or slow responses
+resource "kubernetes_manifest" "langfuse_backend_config" {
+  manifest = {
+    apiVersion = "cloud.google.com/v1"
+    kind       = "BackendConfig"
+    metadata = {
+      name      = "langfuse-web"
+      namespace = kubernetes_namespace.langfuse.metadata[0].name
+    }
+    spec = {
+      healthCheck = {
+        checkIntervalSec   = 15
+        timeoutSec         = 15
+        healthyThreshold   = 1
+        unhealthyThreshold = 5
+        type               = "HTTP"
+        requestPath        = "/api/public/ready"
+        port               = 3000
+      }
+      connectionDraining = {
+        drainingTimeoutSec = 30
+      }
+    }
+  }
+
+  depends_on = [kubernetes_namespace.langfuse]
+}
+
 resource "helm_release" "langfuse" {
   name       = "langfuse"
   repository = "https://langfuse.github.io/langfuse-k8s"
@@ -201,6 +251,7 @@ resource "helm_release" "langfuse" {
   depends_on = [
     kubernetes_secret.langfuse,
     google_service_account.langfuse,
+    kubernetes_manifest.langfuse_backend_config,
   ]
 
   timeout = 1800 # Increase timeout to 15 minutes

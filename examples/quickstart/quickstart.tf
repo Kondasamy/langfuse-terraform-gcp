@@ -16,7 +16,7 @@ module "langfuse" {
   # Optional: Configure the database instances
   database_instance_tier              = "db-perf-optimized-N-4"
   database_instance_availability_type = "REGIONAL"
-  database_instance_edition = "ENTERPRISE_PLUS"
+  database_instance_edition           = "ENTERPRISE_PLUS"
 
   # Optional: Configure the cache
   cache_tier           = "STANDARD_HA"
@@ -31,7 +31,7 @@ module "langfuse" {
   zookeeper_cpu_request    = "250m"
   zookeeper_cpu_limit      = "500m"
 
-   additional_env = [
+  additional_env = [
     # Disable username/password authentication (requires SSO)
     {
       name  = "AUTH_DISABLE_USERNAME_PASSWORD"
