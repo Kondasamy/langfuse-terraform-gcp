@@ -49,6 +49,13 @@ langfuse:
           - key: redis-certificate
             path: redis-ca.crt
   web:
+    resources:
+      requests:
+        cpu: ${var.web_cpu_request}
+        memory: ${var.web_memory_request}
+      limits:
+        cpu: ${var.web_cpu_limit}
+        memory: ${var.web_memory_limit}
     livenessProbe:
       initialDelaySeconds: 90
       timeoutSeconds: 15
@@ -64,6 +71,13 @@ langfuse:
         exec:
           command: ["/bin/sh", "-c", "sleep 15"]
   worker:
+    resources:
+      requests:
+        cpu: ${var.worker_cpu_request}
+        memory: ${var.worker_memory_request}
+      limits:
+        cpu: ${var.worker_cpu_limit}
+        memory: ${var.worker_memory_limit}
     livenessProbe:
       initialDelaySeconds: 60
       timeoutSeconds: 10
@@ -270,6 +284,134 @@ resource "kubernetes_pod_disruption_budget_v1" "langfuse_web" {
       match_labels = {
         "app.kubernetes.io/name"      = "langfuse"
         "app.kubernetes.io/component" = "web"
+      }
+    }
+  }
+
+  depends_on = [helm_release.langfuse]
+}
+
+# Horizontal Pod Autoscaler for web deployment
+resource "kubernetes_horizontal_pod_autoscaler_v2" "langfuse_web" {
+  metadata {
+    name      = "langfuse-web"
+    namespace = kubernetes_namespace.langfuse.metadata[0].name
+  }
+
+  spec {
+    scale_target_ref {
+      api_version = "apps/v1"
+      kind        = "Deployment"
+      name        = "langfuse-web"
+    }
+
+    min_replicas = var.web_min_replicas
+    max_replicas = var.web_max_replicas
+
+    metric {
+      type = "Resource"
+      resource {
+        name = "cpu"
+        target {
+          type                = "Utilization"
+          average_utilization = 70
+        }
+      }
+    }
+
+    metric {
+      type = "Resource"
+      resource {
+        name = "memory"
+        target {
+          type                = "Utilization"
+          average_utilization = 80
+        }
+      }
+    }
+
+    behavior {
+      scale_down {
+        stabilization_window_seconds = 300
+        select_policy                = "Min"
+        policy {
+          type           = "Pods"
+          value          = 1
+          period_seconds = 60
+        }
+      }
+      scale_up {
+        stabilization_window_seconds = 60
+        select_policy                = "Max"
+        policy {
+          type           = "Pods"
+          value          = 2
+          period_seconds = 60
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.langfuse]
+}
+
+# Horizontal Pod Autoscaler for worker deployment
+resource "kubernetes_horizontal_pod_autoscaler_v2" "langfuse_worker" {
+  metadata {
+    name      = "langfuse-worker"
+    namespace = kubernetes_namespace.langfuse.metadata[0].name
+  }
+
+  spec {
+    scale_target_ref {
+      api_version = "apps/v1"
+      kind        = "Deployment"
+      name        = "langfuse-worker"
+    }
+
+    min_replicas = var.worker_min_replicas
+    max_replicas = var.worker_max_replicas
+
+    metric {
+      type = "Resource"
+      resource {
+        name = "cpu"
+        target {
+          type                = "Utilization"
+          average_utilization = 70
+        }
+      }
+    }
+
+    metric {
+      type = "Resource"
+      resource {
+        name = "memory"
+        target {
+          type                = "Utilization"
+          average_utilization = 80
+        }
+      }
+    }
+
+    behavior {
+      scale_down {
+        stabilization_window_seconds = 300
+        select_policy                = "Min"
+        policy {
+          type           = "Pods"
+          value          = 1
+          period_seconds = 60
+        }
+      }
+      scale_up {
+        stabilization_window_seconds = 60
+        select_policy                = "Max"
+        policy {
+          type           = "Pods"
+          value          = 1
+          period_seconds = 60
+        }
       }
     }
   }

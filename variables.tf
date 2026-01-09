@@ -123,3 +123,77 @@ variable "additional_env" {
     error_message = "Each environment variable must have either 'value' or 'valueFrom' specified, but not both."
   }
 }
+
+# Web component resource configuration
+variable "web_cpu_request" {
+  description = "CPU request for web pods"
+  type        = string
+  default     = "500m"
+}
+
+variable "web_cpu_limit" {
+  description = "CPU limit for web pods"
+  type        = string
+  default     = "2"
+}
+
+variable "web_memory_request" {
+  description = "Memory request for web pods"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "web_memory_limit" {
+  description = "Memory limit for web pods"
+  type        = string
+  default     = "2Gi"
+}
+
+variable "web_min_replicas" {
+  description = "Minimum number of web pod replicas"
+  type        = number
+  default     = 2
+}
+
+variable "web_max_replicas" {
+  description = "Maximum number of web pod replicas"
+  type        = number
+  default     = 5
+}
+
+# Worker component resource configuration
+variable "worker_cpu_request" {
+  description = "CPU request for worker pods"
+  type        = string
+  default     = "500m"
+}
+
+variable "worker_cpu_limit" {
+  description = "CPU limit for worker pods"
+  type        = string
+  default     = "2"
+}
+
+variable "worker_memory_request" {
+  description = "Memory request for worker pods"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "worker_memory_limit" {
+  description = "Memory limit for worker pods"
+  type        = string
+  default     = "2Gi"
+}
+
+variable "worker_min_replicas" {
+  description = "Minimum number of worker pod replicas"
+  type        = number
+  default     = 2
+}
+
+variable "worker_max_replicas" {
+  description = "Maximum number of worker pod replicas"
+  type        = number
+  default     = 4
+}
